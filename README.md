@@ -48,4 +48,4 @@ SafeCT envisions a future where safety is a given, not a concern. By leveraging 
 # watch the demo 
 [![Watch the video](https://img.youtube.com/vi/ZH0DoSMiBto/0.jpg)](https://www.youtube.com/shorts/ZH0DoSMiBto)
 
-Designed by Yuvraaj Bhatter in California.
+*Designed by Yuvraaj Bhatter in California.*
