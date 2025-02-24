@@ -1,6 +1,4 @@
 # safeCT
-![Alt Text](demo.png)
-# SafeCT
 
 ## Overview
 SafeCT is an innovative application designed to enhance urban safety by providing real-time crime data and location-based alerts. With rising crime rates making city navigation stressful, SafeCT empowers users with the tools and information they need to make informed decisions about their surroundings.
@@ -43,13 +41,7 @@ Navigating city streets can be daunting due to increasing crime rates. SafeCT ai
 ## Mission
 SafeCT envisions a future where safety is a given, not a concern. By leveraging technology, we aim to empower communities and ensure a secure, informed, and connected environment for everyone.
 
-## Team
-- **Jack Tran**
-- **Kevin Arante**
-- **Yuvraaj Bhatter**
-- **Aaryan Bidaye**
-
-
+![Alt Text](demo.png)
 
 
 # watch the demo 
