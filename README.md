@@ -41,7 +41,7 @@ Navigating city streets can be daunting due to increasing crime rates. SafeCT ai
 ## Mission
 SafeCT envisions a future where safety is a given, not a concern. By leveraging technology, we aim to empower communities and ensure a secure, informed, and connected environment for everyone.
 
-![Alt Text](demo.jpg)
+![Alt Text](ui.jpg)
 
 
 # watch the demo 
