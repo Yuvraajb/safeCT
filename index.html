@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>safeCT</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+  <style>
+    #map {
+      height: 100vh;
+      width: 100%;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+    }
+    .legend {
+      background: white;
+      padding: 10px;
+      border-radius: 5px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+    }
+    .legend div {
+      margin: 5px 0;
+    }
+    .color-box {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      margin-right: 5px;
+      vertical-align: middle;
+    }
+    .info-panel {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: white;
+      padding: 15px;
+      border-radius: 5px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+      z-index: 1000;
+    }
+    .district-select {
+      padding: 5px;
+      margin-bottom: 10px;
+      width: 200px;
+    }
+    .sos-button {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background-color: #ff0000;
+      color: white;
+      border: none;
+      font-weight: bold;
+      font-size: 18px;
+      cursor: pointer;
+      z-index: 1000;
+      transition: all 0.3s ease;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+    }
+    .sos-button.holding {
+      background-color: #8b0000;
+      transform: translateX(-50%) scale(1.2);
+      transition: all 3s ease;
+    }
+    .sos-button.activated {
+      animation: pulse 1s infinite;
+      transform: translateX(-50%) scale(1.5);
+      width: 120px;
+      height: 120px;
+      font-size: 24px;
+    }
+    @keyframes pulse {
+      0% {
+        transform: translateX(-50%) scale(1);
+      }
+      50% {
+        transform: translateX(-50%) scale(1.1);
+      }
+      100% {
+        transform: translateX(-50%) scale(1);
+      }
+    }
+    .custom-alert {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+      z-index: 2000;
+      text-align: center;
+      display: none;
+    }
+    .custom-alert button {
+      margin: 10px;
+      padding: 8px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .custom-alert .enable-sos {
+      background-color: #ff0000;
+      color: white;
+    }
+    .custom-alert .cancel {
+      background-color: gray;
+      color: black;
+    }
+    .close-sos {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background-color: white;
+      color: #ff0000;
+      border: 2px solid #ff0000;
+      font-weight: bold;
+      font-size: 16px;
+      cursor: pointer;
+      z-index: 1001;
+      display: none;
+      padding: 0;
+      line-height: 26px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    }
+    .phone-settings {
+      padding: 15px;
+      border-radius: 5px;
+      background: #f5f5f5;
+    }
+    .hamburger-menu {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 35px;
+      height: 35px;
+      background: white;
+      border-radius: 5px;
+      cursor: pointer;
+      z-index: 1002;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .hamburger-icon {
+      width: 20px;
+      height: 16px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .hamburger-icon span {
+      display: block;
+      width: 100%;
+      height: 2px;
+      background: #333;
+      transition: all 0.3s ease;
+    }
+    .menu-content {
+      position: fixed;
+      top: 0;
+      right: -400px;
+      width: 300px;
+      height: 100vh;
+      background: white;
+      box-shadow: -5px 0 15px rgba(0, 0, 0, 0.2);
+      transition: right 0.3s ease;
+      z-index: 1001;
+      padding: 60px 20px 20px;
+    }
+    .menu-content.active {
+      right: 0;
+    }
+    .close-menu {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      cursor: pointer;
+      font-size: 24px;
+      color: #333;
+    }
+    .district-container {
+      position: fixed;
+      top: 70px;
+      right: 20px;
+      z-index: 1000;
+      background: white;
+      padding: 10px;
+      border-radius: 5px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+    }
+    .phone-input-group {
+      margin-bottom: 10px;
+    }
+    .emergency-phone {
+      width: 100%;
+      padding: 5px;
+      margin-bottom: 5px;
+    }
+    .initial-popup {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease;
+      z-index: 2000;
+    }
+    .initial-popup.show {
+      opacity: 1;
+      visibility: visible;
+    }
+    .popup-content {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      text-align: center;
+      max-width: 400px;
+      width: 90%;
+      transform: translateY(20px);
+      transition: transform 0.3s ease;
+    }
+    .initial-popup.show .popup-content {
+      transform: translateY(0);
+    }
+    .popup-content input {
+      width: 100%;
+      padding: 10px;
+      margin: 15px 0;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    .popup-content button {
+      padding: 10px 20px;
+      background: #ff0000;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .popup-content button:hover {
+      background: #cc0000;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div class="info-panel">
+    <div id="districtInfo"></div>
+  </div>
+  <button id="sosButton" class="sos-button">SOS</button>
+  <button id="closeSOS" class="close-sos" onclick="resetSOS()">✕</button>
+  <div id="dangerAlert" class="custom-alert">
+    <p>We noticed you're entering a high-risk area. Would you like to enable SOS mode?</p>
+    <button class="enable-sos" onclick="enableSOS()">Enable SOS</button>
+    <button class="cancel" onclick="dismissAlert()">I'm Fine</button>
+  </div>
+
+  <div class="hamburger-menu" onclick="toggleMenu()">
+    <div class="hamburger-icon">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+  </div>
+
+  <div class="menu-content" id="menuContent">
+    <div class="close-menu" onclick="toggleMenu()">✕</div>
+    <div class="phone-settings">
+      <h4>Emergency Contacts (Up to 3)</h4>
+      <div id="phoneInputs">
+        <div class="phone-input-group">
+          <input type="tel" 
+            class="emergency-phone" 
+            placeholder="Enter phone number 1" 
+            pattern="[0-9]{10}" 
+            title="Please enter a valid 10-digit phone number"/>
+        </div>
+        <div class="phone-input-group">
+          <input type="tel" 
+            class="emergency-phone" 
+            placeholder="Enter phone number 2" 
+            pattern="[0-9]{10}" 
+            title="Please enter a valid 10-digit phone number"/>
+        </div>
+        <div class="phone-input-group">
+          <input type="tel" 
+            class="emergency-phone" 
+            placeholder="Enter phone number 3" 
+            pattern="[0-9]{10}" 
+            title="Please enter a valid 10-digit phone number"/>
+        </div>
+      </div>
+      <button onclick="savePhoneNumbers()">Save Numbers</button>
+      <p id="phoneStatus" style="font-size: 12px; margin-top: 5px;"></p>
+    </div>
+  </div>
+
+  <div class="district-container">
+    <select class="district-select" id="districtSelect">
+      <option value="">Select District</option>
+      <option value="Bayview">Bayview</option>
+      <option value="Bernal Heights">Bernal Heights</option>
+      <option value="Castro">Castro</option>
+      <option value="Chinatown">Chinatown</option>
+      <option value="Excelsior">Excelsior</option>
+      <option value="Financial District">Financial District</option>
+      <option value="Glen Park">Glen Park</option>
+      <option value="Haight-Ashbury">Haight-Ashbury</option>
+      <option value="Hayes Valley">Hayes Valley</option>
+      <option value="Inner Richmond">Inner Richmond</option>
+      <option value="Inner Sunset">Inner Sunset</option>
+      <option value="Japantown">Japantown</option>
+      <option value="Marina">Marina</option>
+      <option value="Mission District">Mission District</option>
+      <option value="Nob Hill">Nob Hill</option>
+      <option value="Noe Valley">Noe Valley</option>
+      <option value="North Beach">North Beach</option>
+      <option value="Outer Richmond">Outer Richmond</option>
+      <option value="Outer Sunset">Outer Sunset</option>
+      <option value="Pacific Heights">Pacific Heights</option>
+      <option value="Potrero Hill">Potrero Hill</option>
+      <option value="Russian Hill">Russian Hill</option>
+      <option value="SoMa">SoMa</option>
+      <option value="Tenderloin">Tenderloin</option>
+      <option value="Twin Peaks">Twin Peaks</option>
+      <option value="Western Addition">Western Addition</option>
+    </select>
+  </div>
+
+  <!-- Add audio element after other elements -->
+  <audio id="alarmSound" preload="auto" loop>
+    <source src="HIGH PITCHED ALARM SOUND EFFECT 7.mp3" type="audio/mpeg">
+  </audio>
+
+  <div class="initial-popup" id="initialPopup">
+    <div class="popup-content">
+      <h2>Welcome to safeCT</h2>
+      <p>Please enter your emergency contact number to continue</p>
+      <input type="tel" 
+             id="initialPhone" 
+             placeholder="Enter phone number" 
+             pattern="[0-9]{10}" 
+             title="Please enter a valid 10-digit phone number"/>
+      <p id="initialPhoneError" style="color: red; display: none;">Please enter a valid 10-digit phone number</p>
+      <button onclick="saveInitialPhone()">Continue</button>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+  <script src="safety_data.js"></script>
+  <script>
+    // Initialize the map centered on San Francisco
+    const map = L.map('map').setView([37.7749, -122.4194], 12);
+
+    // Add the OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Create a marker for Mission District (initial location)
+    const missionMarker = L.marker([37.7599, -122.4148]).addTo(map).bindPopup("Mission District");
+
+    // Create district selector
+    const districtSelect = document.getElementById('districtSelect');
+    const districtInfo = document.getElementById('districtInfo');
+
+    // SOS Button functionality
+    const sosButton = document.getElementById('sosButton');
+    let holdTimer = null;
+    let isActivated = false;
+
+    // Hold timer functionality for mouse events
+    sosButton.addEventListener('mousedown', startHold);
+    sosButton.addEventListener('mouseup', endHold);
+    sosButton.addEventListener('mouseleave', endHold);
+
+    // Add touch events
+    sosButton.addEventListener('touchstart', (e) => {
+      e.preventDefault(); // Prevent default touch behavior
+      startHold();
+    });
+
+    sosButton.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      endHold();
+    });
+
+    sosButton.addEventListener('touchcancel', (e) => {
+      e.preventDefault();
+      endHold();
+    });
+
+    // Consolidated hold start function
+    function startHold() {
+      if (isActivated) return;
+
+      holdTimer = setTimeout(() => {
+        activateSOS();
+      }, 1000); // Using 1 second hold time
+
+      sosButton.classList.add('holding');
+    }
+
+    // Consolidated hold end function
+    function endHold() {
+      if (holdTimer) {
+        clearTimeout(holdTimer);
+        holdTimer = null;
+      }
+      if (!isActivated) {
+        sosButton.classList.remove('holding');
+        // Reset the transition
+        sosButton.style.transition = 'all 0.3s ease';
+      }
+    }
+
+    // Marker icons for blue and red markers
+    const blueIcon = new L.Icon({
+      iconUrl:
+        'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+      shadowUrl:
+        'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41]
+    });
+
+    const redIcon = new L.Icon({
+      iconUrl:
+        'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+      shadowUrl:
+        'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41]
+    });
+
+    // Function to activate SOS
+    function activateSOS() {
+      isActivated = true;
+      sosButton.classList.remove('holding');
+      sosButton.classList.add('activated');
+      sosButton.textContent = 'ACTIVE';
+      sosButton.style.animation = 'pulse 1s infinite';
+      
+      // Reset transition timing before expansion
+      sosButton.style.transition = 'all 0.3s ease';
+      
+      // Add expansion animation
+      sosButton.style.transform = 'translateX(-50%) scale(1.5)';
+      sosButton.style.width = '120px';
+      sosButton.style.height = '120px';
+      sosButton.style.fontSize = '24px';
+      
+      // Show close button
+      document.getElementById('closeSOS').style.display = 'block';
+      
+      // Change marker to red
+      missionMarker.setIcon(redIcon);
+      
+      // Play alarm sound at max volume
+      const alarm = document.getElementById('alarmSound');
+      try {
+        // Set volume to maximum
+        alarm.volume = 1.0;
+        
+        // Force unmute
+        alarm.muted = false;
+        
+        // Play the sound
+        const playPromise = alarm.play();
+        
+        if (playPromise !== undefined) {
+          playPromise.catch(error => {
+            console.log("Error playing sound:", error);
+            // Handle auto-play restrictions
+            if (error.name === "NotAllowedError") {
+              alert("Please click OK to enable the alarm sound");
+              alarm.play(); // Attempt to play after user confirmation
+            }
+          });
+        }
+      } catch (error) {
+        console.error("Error with audio playback:", error);
+      }
+      
+      // Send emergency alert if phone number is set
+      const currentDistrict = document.querySelector('#districtSelect').value || 'unknown';
+      sendEmergencyAlert(currentDistrict);
+      
+      console.log('SOS Activated!');
+    }
+
+    // Function to update the marker position based on selected district
+    districtSelect.addEventListener('change', (e) => {
+      const selectedDistrict = e.target.value;
+
+      // Define some example locations for different districts
+      const locations = {
+        Bayview: [37.7298, -122.3919],
+        'Bernal Heights': [37.7389, -122.4152],
+        Castro: [37.7609, -122.4350],
+        Chinatown: [37.7941, -122.4078],
+        Excelsior: [37.7244, -122.4322],
+        'Financial District': [37.7937, -122.3999],
+        'Glen Park': [37.7378, -122.4346],
+        'Haight-Ashbury': [37.7692, -122.4481],
+        'Hayes Valley': [37.7759, -122.4245],
+        'Inner Richmond': [37.7802, -122.4640],
+        'Inner Sunset': [37.7604, -122.4660],
+        Japantown: [37.7856, -122.4293],
+        Marina: [37.8037, -122.4368],
+        'Mission District': [37.7599, -122.4148],
+        'Nob Hill': [37.7930, -122.4161],
+        'Noe Valley': [37.7502, -122.4337],
+        'North Beach': [37.8060, -122.4103],
+        'Outer Richmond': [37.7759, -122.4953],
+        'Outer Sunset': [37.7555, -122.4944],
+        'Pacific Heights': [37.7925, -122.4382],
+        'Potrero Hill': [37.7605, -122.4010],
+        'Russian Hill': [37.8011, -122.4194],
+        SoMa: [37.7785, -122.3970],
+        Tenderloin: [37.7847, -122.4145],
+        'Twin Peaks': [37.7516, -122.4477],
+        'Western Addition': [37.7825, -122.4323]
+      };
+
+      if (selectedDistrict && locations[selectedDistrict]) {
+        const newCoords = locations[selectedDistrict];
+        const districtData = safetyData.find(d => d.location === selectedDistrict);
+
+        if (districtData) {
+          // Create detailed popup content
+          const popupContent = `
+            <div style="min-width: 200px;">
+              <h3 style="margin: 0 0 10px 0;">${districtData.location}</h3>
+              <p style="margin: 5px 0;">Safety Index: ${districtData.safety_index}</p>
+              <p style="margin: 5px 0;">Status: <span style="color: ${getStatusColor(districtData.safety_index)}">${getSafetyStatus(districtData.safety_index)}</span></p>
+            </div>
+          `;
+
+          // Move the marker and set the new popup
+          missionMarker.setLatLng(newCoords)
+            .bindPopup(popupContent)
+            .openPopup();
+
+          // Show danger alert if area is unsafe
+          if (districtData.safety_index >= 60 && !isActivated) {
+            showDangerAlert();
+          }
+          // Reset SOS if area is safe
+          else if (districtData.safety_index < 60 && isActivated) {
+            resetSOS();
+          }
+        }
+      }
+    });
+
+    // Helper function to get safety status
+    function getSafetyStatus(index) {
+      if (index < 20) return 'Very Safe';
+      if (index < 40) return 'Safe';
+      if (index < 60) return 'Moderate';
+      if (index < 80) return 'Unsafe';
+      return 'Very Unsafe';
+    }
+
+    // Helper function to get status color
+    function getStatusColor(index) {
+      if (index < 20) return '#008000';  // Darker Green for Very Safe
+      if (index < 40) return '#7FFF00';    // Chartreuse
+      if (index < 60) return '#FFA500';    // Orange/Amber for Moderate
+      if (index < 80) return '#FF4500';    // OrangeRed
+      return '#8B0000';                  // DarkRed
+    }
+
+    // Add legend to the map
+    const legend = L.control({ position: 'topleft' });
+    legend.onAdd = function (map) {
+      const div = L.DomUtil.create('div', 'legend');
+      div.innerHTML = `
+        <h4>Safety Index</h4>
+        <div><span class="color-box" style="background: #00ff00"></span>Very Safe (0-20)</div>
+        <div><span class="color-box" style="background: #7FFF00"></span>Safe (20-40)</div>
+        <div><span class="color-box" style="background: #FFFF00"></span>Moderate (40-60)</div>
+        <div><span class="color-box" style="background: #FF4500"></span>Unsafe (60-80)</div>
+        <div><span class="color-box" style="background: #8B0000"></span>Very Unsafe (80-100)</div>
+      `;
+      return div;
+    };
+    legend.addTo(map);
+
+    // Assuming safetyData is defined and contains district data
+    safetyData.forEach(district => {
+      const center = district.boundaries.reduce(
+        (acc, coord) => {
+          acc[0] += coord[0];
+          acc[1] += coord[1];
+          return acc;
+        },
+        [0, 0]
+      ).map(val => val / district.boundaries.length);
+
+      L.circle(center, {
+        color: getColor(district.safety_index),
+        fillColor: getColor(district.safety_index),
+        fillOpacity: 0.3,
+        radius: 1000
+      })
+        .addTo(map)
+        .bindPopup(`
+          <strong>${district.location} District</strong><br>
+          Safety Index: ${district.safety_index}<br>
+          Status: ${getSafetyStatus(district.safety_index)}
+        `);
+    });
+
+    // Function to map safety index to a color
+    function getColor(safety) {
+      return safety < 20
+        ? '#00ff00'
+        : safety < 40
+        ? '#7FFF00'
+        : safety < 60
+        ? '#FFFF00'
+        : safety < 80
+        ? '#FF4500'
+        : '#8B0000';
+    }
+
+    // Show danger alert
+    function showDangerAlert() {
+      document.getElementById('dangerAlert').style.display = 'block';
+    }
+
+    function dismissAlert() {
+      document.getElementById('dangerAlert').style.display = 'none';
+    }
+
+    function enableSOS() {
+      activateSOS();
+      dismissAlert();
+    }
+
+    // Reset SOS function
+    function resetSOS() {
+      isActivated = false;
+      sosButton.classList.remove('activated');
+      sosButton.classList.remove('holding');
+      sosButton.textContent = 'SOS';
+      sosButton.style.animation = 'none';
+
+      // Reset size and position
+      sosButton.style.transform = 'translateX(-50%) scale(1)';
+      sosButton.style.width = '80px';
+      sosButton.style.height = '80px';
+      sosButton.style.fontSize = '18px';
+
+      // Hide close button
+      document.getElementById('closeSOS').style.display = 'none';
+
+      // Change marker back to blue
+      missionMarker.setIcon(blueIcon);
+
+      // Stop alarm sound
+      const alarm = document.getElementById('alarmSound');
+      alarm.pause();
+      alarm.currentTime = 0;
+    }
+
+    // Set initial marker color to blue
+    missionMarker.setIcon(blueIcon);
+
+    let emergencyContacts = [];
+
+    function savePhoneNumbers() {
+      const phoneInputs = document.querySelectorAll('.emergency-phone');
+      const phoneStatus = document.getElementById('phoneStatus');
+      const newContacts = [];
+
+      phoneInputs.forEach(input => {
+        const phoneNumber = input.value.replace(/\D/g, ''); // Remove non-digits
+        if (phoneNumber.length === 10) {
+          newContacts.push(phoneNumber);
+        }
+      });
+
+      if (newContacts.length > 0) {
+        emergencyContacts = newContacts;
+        phoneStatus.textContent = 'Emergency contacts saved: \n' + 
+          emergencyContacts.map(num => formatPhoneNumber(num)).join('\n');
+        phoneStatus.style.color = 'green';
+      } else {
+        phoneStatus.textContent = 'Please enter at least one valid 10-digit phone number';
+        phoneStatus.style.color = 'red';
+      }
+    }
+
+    function formatPhoneNumber(phoneNumber) {
+      return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3, 6)}-${phoneNumber.slice(6)}`;
+    }
+
+    function sendEmergencyAlert(district) {
+      if (emergencyContacts.length > 0) {
+        // In a real implementation, this would connect to a backend service to send SMS
+        console.log('Emergency alerts sent to:', emergencyContacts);
+        console.log(`Message: Emergency alert! User has activated SOS in ${district} area.`);
+        
+        // Show alert to user with all contact numbers
+        alert(`Emergency alert sent to saved numbers!`);
+      } else {
+        alert('Please set up at least one emergency contact number first');
+      }
+    }
+
+    function toggleMenu() {
+      const menuContent = document.getElementById('menuContent');
+      menuContent.classList.toggle('active');
+    }
+
+    document.addEventListener('click', function (event) {
+      const menuContent = document.getElementById('menuContent');
+      const hamburgerMenu = document.querySelector('.hamburger-menu');
+
+      if (
+        !menuContent.contains(event.target) &&
+        !hamburgerMenu.contains(event.target) &&
+        menuContent.classList.contains('active')
+      ) {
+        menuContent.classList.remove('active');
+      }
+    });
+
+    function toggleInitialPopup() {
+      const initialPopup = document.getElementById('initialPopup');
+      initialPopup.classList.toggle('show');
+    }
+
+    // Show popup when page loads
+    window.addEventListener('load', () => {
+        setTimeout(() => {
+            document.getElementById('initialPopup').classList.add('show');
+        }, 500); // Small delay for better fade-in effect
+    });
+
+    function saveInitialPhone() {
+        const initialPhone = document.getElementById('initialPhone');
+        const phoneNumber = initialPhone.value.replace(/\D/g, '');
+        const errorMessage = document.getElementById('initialPhoneError');
+        
+        if (phoneNumber.length === 10) {
+            // Set the first phone input in hamburger menu
+            const phoneInputs = document.querySelectorAll('.emergency-phone');
+            phoneInputs[0].value = phoneNumber;
+            
+            // Save the number
+            savePhoneNumbers();
+            
+            // Hide popup with fade-out effect
+            document.getElementById('initialPopup').classList.remove('show');
+            
+            // Remove popup from DOM after animation
+            setTimeout(() => {
+                document.getElementById('initialPopup').style.display = 'none';
+            }, 300);
+        } else {
+            errorMessage.style.display = 'block';
+        }
+    }
+
+    // Add input validation for the initial phone input
+    document.getElementById('initialPhone').addEventListener('input', function(e) {
+        const phoneNumber = e.target.value.replace(/\D/g, '');
+        document.getElementById('initialPhoneError').style.display = 'none';
+        
+        // Format the phone number as user types
+        if (phoneNumber.length <= 10) {
+            let formatted = '';
+            if (phoneNumber.length > 0) formatted += '(' + phoneNumber.substring(0, 3);
+            if (phoneNumber.length > 3) formatted += ') ' + phoneNumber.substring(3, 6);
+            if (phoneNumber.length > 6) formatted += '-' + phoneNumber.substring(6, 10);
+            e.target.value = formatted;
+        }
+    });
+  </script>
+</body>
+</html>
