@@ -1,4 +1,5 @@
 # safeCT
+This project was made for hack 4 humanity hackathon.
 
 ## Overview
 SafeCT is an innovative application designed to enhance urban safety by providing real-time crime data and location-based alerts. With rising crime rates making city navigation stressful, SafeCT empowers users with the tools and information they need to make informed decisions about their surroundings.
@@ -46,3 +47,5 @@ SafeCT envisions a future where safety is a given, not a concern. By leveraging 
 
 # watch the demo 
 [![Watch the video](https://img.youtube.com/vi/ZH0DoSMiBto/0.jpg)](https://www.youtube.com/shorts/ZH0DoSMiBto)
+
+Designed by Yuvraaj Bhatter in California.
